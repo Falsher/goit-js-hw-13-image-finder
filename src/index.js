@@ -1,44 +1,53 @@
-import pictListTpl from './templates/pict-info';
 import './sass/main.scss';
-const debounce = require('lodash.debounce');
-const inputSearch = document.querySelector('.input');
-const pageListPict = document.querySelector('.gallery');
-const sectorListGallery = document.querySelector('.list')
-const keyPixabay = '21857111-8554c096d1798b5dae4546d72';
-const urlPixabay = 'https://pixabay.com/api/';
-let page = 1
-let searchInput = ''
 
-inputSearch.addEventListener('input', debounce(valueInput, 1000))
-function valueInput (event) {
- searchInput = event.target.value;
- console.log(searchInput)
- imageList ()
- if(searchInput != ''){
-  const button = document.createElement('button')
-  button.textContent = 'Load more'
-  sectorListGallery.appendChild(button)
-  button.addEventListener('click', function(){page++
-    imageList (page)})
- }else if (searchInput != searchInput ) {
-  location.reload()
-  imageList ()
- }
+
+import apiPixabay from './js/apiPixabay';
+import pictListTpl from './templates/pict-info.hbs';
+
+const inputSearch= document.querySelector('.search-form');
+const gallery = document.querySelector('.gallery');
+const loadBtn = document.querySelector('.load-more');
+
+
+function makeFirstSearch(event) {
+  event.preventDefault();
+  event.currentTarget.elements.query.value = event.currentTarget.elements.query.value.trim();;
+
+  apiPixabay.searchInput = event.currentTarget.elements.query.value;
+  apiPixabay.resetpage();
+
+  clearImageCards();
+  if (apiPixabay.searchInput === '') {
+    loadBtn.classList.add('visually-hidden');
+    return;
+  };
+
+  makeAnotherSearch();
 };
 
-function imageList (){
-  fetch(
-    `${urlPixabay}/?image_type=photo&orientation=horizontal&q=${searchInput}&page=${page}&per_page=12&key=${keyPixabay}`,
-  )
-    .then(res => {
-      return res.json();
-    })
-    .then(({hits}) => {
-      const dataObtained = pictList(hits);
-      pageListPict.insertAdjacentHTML('beforeend', dataObtained);
-      function pictList(hits) {
-        return pictListTpl(hits);
-      }
+function makeAnotherSearch() {
+  apiPixabay.fetchImages().then(searchResult => {
 
-    });
+    if (searchResult.length === 0) {
+      loadBtn.classList.add('visually-hidden');
+      return;
+    };
+
+    renderImageCards(searchResult)
+
+    loadBtn.classList.remove('visually-hidden');
+
+
+  });
+};
+
+function renderImageCards(images) {
+  gallery.insertAdjacentHTML('beforeend', pictListTpl(images));
+};
+
+function clearImageCards() {
+  gallery.innerHTML = '';
 }
+
+inputSearch.addEventListener('submit', makeFirstSearch);
+loadBtn.addEventListener('click', makeAnotherSearch);
